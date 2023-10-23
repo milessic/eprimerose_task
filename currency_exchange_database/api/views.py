@@ -14,19 +14,31 @@ class Currency(APIView):
                 - order - order by id, if not 'ASC' provided, it is 'DESC'
                 - **kwargs - any other query parameters, if are valid django filters, then these are applied
                 """
-        # sets limit due to query parameter, if nothing is provided, then there's no limit
+        # sets limit due to query parameter, if nothing is provided, then sets 500 as a limit
         try:
-            limit = int(request.GET.get('limit'))
+            limit = request.GET.get('limit')
+            if limit == 'none':
+                pass
+            else:
+                try:
+                    limit = int(limit)
+                except:
+                    limit = 500
         except:
-            limit = None
+            limit = 500
+
+
 
         # sets order, if there's no 'order=asc' (value is case insensitive), sets 'DESC'
         order = request.GET.get('order')
         query_params = dict(request.GET)
-        if order.upper() != 'ASC':
+        try:
+            if order.upper() == 'ASC':
+                order = order.upper()
+            else:
+                order = "DESC"
+        except:
             order = "DESC"
-        else:
-            order = order.upper()
 
         # select all objects from EurUsdCurrencies model and order them by utc_timestamp
         currencies = EurUsdCurrencies.objects.all()
@@ -42,8 +54,8 @@ class Currency(APIView):
             except:
                pass
 
-        # at the end it sets the max number of records
-        if limit is not None:
+        # at the end it sets the max number of records if limit was not set to 'none'
+        if limit != 'none':
             currencies = currencies[:limit]
 
         # process data through model serializer and return it as JSON

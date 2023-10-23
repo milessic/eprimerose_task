@@ -2,12 +2,76 @@ from decimal import Decimal
 
 from django.test import TestCase, Client
 from django.urls import reverse
-from urllib.error import HTTPError
 
+from random import randint
 from ..views import *
 
 
-class TestsViews(TestCase):
+class TestViewsCurrency(TestCase):
+    def setUp(self):
+        for i in range(20):
+            EurUsdCurrencies.objects.create(open_rate=f"{randint(0,2)}.{randint(0,9)}{randint(0,9)}{randint(0,9)}{randint(0,9)}",
+                                            utc_timestamp=f"2023-0{randint(0,9)}-{randint(0,2)}{randint(0,9)}T09:19:{randint(0,5)}{randint(0,9)}.703092Z")
+    def test_currency_GET_200(self):
+        client = Client()
+        response = client.get(reverse('currency'))
+        self.assertEquals(response.status_code, 200)
+
+    def test_currency_GET_check_default_order_is_DESC(self):
+        client = Client()
+        response = client.get(f"""{reverse('currency')}""")
+        self.assertEquals(response.status_code, 200)
+        first_iteration = True
+        for key in response.data:
+            if not first_iteration:
+                self.assertTrue(key['id'] < previous_id)
+            else:
+                first_iteration = False
+            previous_id = key['id']
+
+    def test_currency_GET_check_order_is_ASC(self):
+        client = Client()
+        response = client.get(f"""{reverse('currency')}?order=ASC""")
+        self.assertEquals(response.status_code, 200)
+        first_iteration = True
+        for key in response.data:
+            if first_iteration:
+                first_iteration = False
+            else:
+                self.assertTrue(key['id'] > previous_id)
+            previous_id = key['id']
+
+    def test_currency_GET_check_order_unsupported_value_is_DESC(self):
+        client = Client()
+        response = client.get(f"""{reverse('currency')}?order=pink_penguin""")
+        self.assertEquals(response.status_code, 200)
+        first_iteration = True
+        for key in response.data:
+            if first_iteration:
+                first_iteration = False
+            else:
+                self.assertTrue(key['id'] < previous_id)
+            previous_id = key['id']
+
+    def test_currency_GET_check_limit(self):
+        client = Client()
+        limit = 3
+        response = client.get(f"""{reverse('currency')}?limit={limit}""")
+        self.assertEquals(response.status_code, 200)
+        key_count = len(response.data)
+        self.assertTrue(key_count == limit)
+
+    def test_currency_GET_check_limit_higher_than_actual(self):
+        client = Client()
+        response = client.get(reverse('currency'))
+        self.assertEquals(response.status_code, 200)
+        key_count = len(response.data)
+        response_2 = client.get(f"""{reverse('currency')}?limit={key_count+10}""")
+        key_count_2 = len(response.data)
+        self.assertTrue(key_count_2 == key_count)
+
+
+class TestsViewsCurrencyEurUsd(TestCase):
     def test_currency_eur_usd_GET_200(self):
         client = Client()
         response = client.get(reverse('currency_eurusd'))
