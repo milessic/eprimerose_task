@@ -1,4 +1,4 @@
-# Eprimerose task
+# Simple Currency Database
 This is Django application task repository.
 
 # API Documentation
