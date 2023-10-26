@@ -10,8 +10,8 @@ from ..views import *
 class TestViewsCurrency(TestCase):
     def setUp(self):
         for i in range(20):
-            EurUsdCurrencies.objects.create(open_rate=f"{randint(0,2)}.{randint(0,9)}{randint(0,9)}{randint(0,9)}{randint(0,9)}",
-                                            utc_timestamp=f"2023-0{randint(0,9)}-{randint(0,2)}{randint(0,9)}T09:19:{randint(0,5)}{randint(0,9)}.703092Z")
+            Currencies.objects.create(open_rate=f"{randint(0, 2)}.{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}",
+                                      utc_timestamp=f"2023-0{randint(0,9)}-{randint(0,2)}{randint(0,9)}T09:19:{randint(0,5)}{randint(0,9)}.703092Z")
     def test_currency_GET_200(self):
         client = Client()
         response = client.get(reverse('currency'))
@@ -74,11 +74,12 @@ class TestViewsCurrency(TestCase):
 class TestsViewsCurrencyEurUsd(TestCase):
     def test_currency_eur_usd_GET_200(self):
         client = Client()
-        response = client.get(reverse('currency_eurusd'))
+        response = client.get(reverse('currency_rate', args=("EUR", "USD")))
         self.assertEquals(response.status_code, 200)
 
-    def test_currency_eur_usd_get_eurusd_200(self):
-        eur_usd_result = CurrencyEurUsd().get_eurusd()
+    def test_currency_converter_get_rate_200(self):
+        eur_usd_result = CurrencyConverter().get_rate("EUR", "PLN")
         rate = getattr(eur_usd_result, 'open_rate')
         self.assertIsInstance(rate, Decimal)
         self.assertEquals(rate, round(rate, 5))
+
