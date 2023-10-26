@@ -9,5 +9,5 @@ class TestUrls(SimpleTestCase):
         self.assertEquals(resolve(url).func.view_class, Currency)
 
     def test_currency_eurusd_url_is_resovled(self):
-        url = reverse('currency_eurusd')
-        self.assertEquals(resolve(url).func.view_class, CurrencyEurUsd)
+        url = reverse('currency_rate', args=("EUR", "PLN"))
+        self.assertEquals(resolve(url).func.view_class, CurrencyConverter)
