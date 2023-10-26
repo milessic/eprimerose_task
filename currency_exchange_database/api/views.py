@@ -66,7 +66,7 @@ class CurrencyConverter(APIView):
         and saves search record to the Currencies model"""
         # gets data ticker for {base}{quote}=X query and assigns value form 'open' and ensure that values are uppercase
         rate = Ticker(f"{base.upper()}{quote.upper()}=X")
-        rate = rate.info['open']
+        rate = rate.fast_info['open']
         # saves the record to EurUsdCurrencies
         record = Currencies(base_currency=base.upper(),
                             quote_currency=quote.upper(),
@@ -80,16 +80,17 @@ class CurrencyConverter(APIView):
     def get(self, request, base, quote):
         r"""fetches data from Yahoo finance using yfinance and returns it as json response.
             additionaly saves the currency pair exchange rate with UTC timestamp to the Currencies"""
-        # try statement is used here in case of Yahoo failures
-        #   e.g when Yahoo is down or there's problem with user location (user is not in USA)
+        # try statement is used here in case of failures
+        #  e.g. when user provides not valid currency pair
         try:
             eur_usd_exchange_rate = self.get_rate(base.upper(),quote.upper())
             serializer = CurrenciesSerializer(eur_usd_exchange_rate, many=False)
             return Response(serializer.data)
-        # handle the exception, if 404 Client Error shown, indicate user that only US users are allowed
+        # handle the exception, if 404 Client Error shown, indicate user that currency pair is not found
         # in any other cases return 500 server error
         except Exception as error:
-            if '404 Client Error:' in str(error):
-                return Response({'message': 'Only USA users are supported.'}, status=status.HTTP_400_BAD_REQUEST)
+            print(error)
+            if 'currentTradingPeriod' in str(error):
+                return Response({'message': f'Didn\'t find currency pair with symbol {base}{quote}.'}, status=status.HTTP_404_NOT_FOUND)
             else:
-                return Response({'message': 'Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'message': f'Server Error - {error}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
