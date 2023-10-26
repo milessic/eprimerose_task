@@ -4,7 +4,7 @@ from rest_framework import status
 from .models import Currencies
 from .serializers import CurrenciesSerializer
 from yfinance import Ticker
-
+from django.forms import ValidationError
 
 class Currency(APIView):
     def get(self, request):
@@ -83,13 +83,17 @@ class CurrencyConverter(APIView):
         # try statement is used here in case of failures
         #  e.g. when user provides not valid currency pair
         try:
-            eur_usd_exchange_rate = self.get_rate(base.upper(),quote.upper())
+            if len(base) != 3 or len(quote) != 3:
+                return Response({"message": f"Each currency code has to be 3 digits code, provided base: '{base}', provided quote: '{quote}'"}, status=status.HTTP_400_BAD_REQUEST)
+
+            eur_usd_exchange_rate = self.get_rate(base,quote)
             serializer = CurrenciesSerializer(eur_usd_exchange_rate, many=False)
             return Response(serializer.data)
         # handle the exception, if 404 Client Error shown, indicate user that currency pair is not found
         # in any other cases return 500 server error
+        except ValidationError:
+            return Response()
         except Exception as error:
-            print(error)
             if 'currentTradingPeriod' in str(error):
                 return Response({'message': f'Didn\'t find currency pair with symbol {base}{quote}.'}, status=status.HTTP_404_NOT_FOUND)
             else:
