@@ -20,10 +20,11 @@ Fetches history records. It takes query parameters like:
 ### /currency/{base}/{quote}/
 Fetches data from Yahoo for currency pair rate and returns the open rate. Saves the search in the history with the timestamp.
 
-# Tools used
-* Django REST Framework - I decided on DRF, beacuse it has great documentation, is a powerfull full-stack tool and has a big community.
+# Tools and 3rd party libraries used
+* Django REST Framework - I decided on DRF, because it has great documentation, is a powerful full-stack tool and has a big community.
 * yfinance - I checked on this, and kept with it.
 * SQLite - this is built in database that does the job for such purposes
+* django-admin-rangefilter - it's a great filtering app for django
 
 # Environment setup
 It is recommended to use python virtual environment
