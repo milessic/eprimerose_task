@@ -9,9 +9,13 @@ from ..views import *
 
 class TestViewsCurrency(TestCase):
     def setUp(self):
+        base = Currencies(currency_code="EUR")
+        base.save()
+        quote = Currencies(currency_code="PLN")
+        quote.save()
         for i in range(20):
-            Currencies.objects.create(open_rate=f"{randint(0, 2)}.{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}",
-                                      utc_timestamp=f"2023-0{randint(0,9)}-{randint(0,2)}{randint(0,9)}T09:19:{randint(0,5)}{randint(0,9)}.703092Z")
+            CurrencyRates.objects.create(base_currency=base, quote_currency=quote, open_rate=f"{randint(0, 2)}.{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}",
+                                         utc_timestamp=f"2023-0{randint(0,9)}-{randint(0,2)}{randint(0,9)}T09:19:{randint(0,5)}{randint(0,9)}.703092Z")
     def test_currency_GET_200(self):
         client = Client()
         response = client.get(reverse('currency'))
