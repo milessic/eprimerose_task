@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Currencies
-from .serializers import CurrenciesSerializer
+from .models import CurrencyRates, Currencies
+from .serializers import CurrencyRatesSerializer
 from yfinance import Ticker
 from django.forms import ValidationError
+
 
 class Currency(APIView):
     def get(self, request):
@@ -38,7 +39,7 @@ class Currency(APIView):
             order = "DESC"
 
         # select all objects from EurUsdCurrencies model and order them by utc_timestamp
-        currencies = Currencies.objects.all()
+        currencies = CurrencyRates.objects.all()
         currencies = currencies.order_by(f'{"-" if order == "DESC" else ""}utc_timestamp')
 
         # user queries, goes through query paramters and if it can be used as filter, it does it
@@ -56,7 +57,7 @@ class Currency(APIView):
             currencies = currencies[:limit]
 
         # process data through model serializer and return it as JSON
-        serializer = CurrenciesSerializer(currencies, many=True)
+        serializer = CurrencyRatesSerializer(currencies, many=True)
         return Response(serializer.data)
 
 
@@ -67,15 +68,27 @@ class CurrencyConverter(APIView):
         # gets data ticker for {base}{quote}=X query and assigns value form 'open' and ensure that values are uppercase
         rate = Ticker(f"{base.upper()}{quote.upper()}=X")
         rate = rate.fast_info['open']
-        # saves the record to EurUsdCurrencies
-        record = Currencies(base_currency=base.upper(),
-                            quote_currency=quote.upper(),
-                            open_rate=rate
-                            #currency_pair=f"ABCDEF"
-                            )
+        # saves the records to Currencies
+        try:
+            base_record = Currencies(currency_code=base.upper())
+            base_record.save()
+        except:
+            base_record = Currencies.objects.get(currency_code=base.upper())
+
+        try:
+            quote_record = Currencies(currency_code=quote.upper())
+            quote_record.save()
+        except:
+            quote_record = Currencies.objects.get(currency_code=quote.upper())
+
+        # saves the record to the CurrencyRates
+        record = CurrencyRates(base_currency=base_record,
+                               quote_currency=quote_record,
+                               open_rate=rate
+                               )
         record.save()
         # return newly created record in Currencies
-        return Currencies.objects.get(id=record.id)
+        return CurrencyRates.objects.get(id=record.id)
 
     def get(self, request, base, quote):
         r"""fetches data from Yahoo finance using yfinance and returns it as json response.
@@ -87,7 +100,7 @@ class CurrencyConverter(APIView):
                 return Response({"message": f"Each currency code has to be 3 digits code, provided base: '{base}', provided quote: '{quote}'"}, status=status.HTTP_400_BAD_REQUEST)
 
             eur_usd_exchange_rate = self.get_rate(base,quote)
-            serializer = CurrenciesSerializer(eur_usd_exchange_rate, many=False)
+            serializer = CurrencyRatesSerializer(eur_usd_exchange_rate, many=False)
             return Response(serializer.data)
         # handle the exception, if 404 Client Error shown, indicate user that currency pair is not found
         # in any other cases return 500 server error
